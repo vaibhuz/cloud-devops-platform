@@ -60,7 +60,7 @@ jobs:
           docker build -t cloud-devops-platform:${{ github.sha }} .
 
       - name: Scan Image with Trivy
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: cloud-devops-platform:${{ github.sha }}
           format: table
