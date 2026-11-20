@@ -1,1 +1,1 @@
-window.API_BASE = "https://YOUR-RENDER-SERVICE.onrender.com";
+window.API_BASE = "https://cloud-devops-inventory-api.onrender.com";
