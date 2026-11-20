@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: cloud-devops-inventory-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r app/requirements.txt
+    startCommand: gunicorn app.app:app
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false

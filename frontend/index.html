@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cloud Inventory | Dashboard</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f3f6fb;color:#172033}
+header{background:#142b4a;color:white;padding:25px 7%;display:flex;justify-content:space-between;align-items:center}
+header h1{margin:0;font-size:23px}.tag{font-size:13px;color:#b8d7ff}
+main{max-width:1050px;margin:35px auto;padding:0 20px}
+.stats{display:flex;gap:15px;margin-bottom:22px}.stat,.panel{background:white;padding:22px;border-radius:12px;box-shadow:0 3px 15px #1720330d}
+.stat{flex:1}.stat small{color:#68758a}.stat h2{margin:10px 0 0}
+.panel{margin-bottom:22px}form{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:10px}
+input,button{padding:12px;border:1px solid #d6deea;border-radius:7px;font-size:14px}
+button{background:#1769d2;color:white;border:0;cursor:pointer}button.delete{background:#dc4545;padding:8px 12px}
+table{width:100%;border-collapse:collapse;margin-top:12px}th,td{text-align:left;padding:13px;border-bottom:1px solid #edf0f5}th{color:#68758a;font-size:13px}
+#message{margin:12px 0;color:#1769d2}.muted{color:#718096;font-size:13px}
+@media(max-width:650px){form{grid-template-columns:1fr 1fr}.stats{flex-direction:column}header{padding:20px}}
+</style>
+</head>
+<body>
+<header><h1>☁ Cloud Inventory</h1><span class="tag">FULL-STACK CLOUD APPLICATION</span></header>
+<main>
+<div class="stats">
+ <div class="stat"><small>Total products</small><h2 id="total">0</h2></div>
+ <div class="stat"><small>Total units</small><h2 id="units">0</h2></div>
+ <div class="stat"><small>Inventory value</small><h2 id="value">₹0.00</h2></div>
+</div>
+<section class="panel">
+<h3 id="formTitle">Add a product</h3>
+<form id="productForm">
+<input id="name" placeholder="Product name" required>
+<input id="quantity" type="number" min="0" placeholder="Quantity" required>
+<input id="price" type="number" min="0" step="0.01" placeholder="Price (₹)" required>
+<button id="saveButton">Add product</button>
+</form>
+<p id="message" class="muted">Connecting to inventory API...</p>
+</section>
+<section class="panel">
+<h3>Inventory products</h3>
+<table><thead><tr><th>Product</th><th>Quantity</th><th>Price</th><th>Action</th></tr></thead>
+<tbody id="items"></tbody></table>
+</section>
+<p class="muted">Frontend: GitHub Pages · API: Python Flask · Database: PostgreSQL</p>
+</main>
+<script src="config.js"></script>
+<script>
+const API = window.API_BASE + "/api/v1/inventory";
+let products = [], editing = null;
+const $ = id => document.getElementById(id);
+async function load(){
+ try{
+  const r=await fetch(API); if(!r.ok) throw Error("API returned "+r.status);
+  products=await r.json(); render(); $("message").textContent="Connected successfully.";
+ }catch(e){$("message").textContent="API not connected yet. Check backend URL and hosting."; }
+}
+function render(){
+ $("items").innerHTML=products.map(p=>`<tr><td>${escapeHtml(p.name)}</td><td>${p.quantity}</td><td>₹${Number(p.price).toFixed(2)}</td><td><button onclick="editItem(${p.id})">Edit</button> <button class="delete" onclick="removeItem(${p.id})">Delete</button></td></tr>`).join("");
+ $("total").textContent=products.length;
+ $("units").textContent=products.reduce((a,p)=>a+Number(p.quantity),0);
+ $("value").textContent="₹"+products.reduce((a,p)=>a+Number(p.quantity)*Number(p.price),0).toFixed(2);
+}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+window.editItem=id=>{let p=products.find(x=>x.id===id);editing=id;$("name").value=p.name;$("quantity").value=p.quantity;$("price").value=p.price;$("formTitle").textContent="Update product";$("saveButton").textContent="Save changes";};
+window.removeItem=async id=>{if(!confirm("Delete this product?"))return;let r=await fetch(API+"/"+id,{method:"DELETE"});if(r.ok)load();else alert("Delete failed");};
+$("productForm").addEventListener("submit",async e=>{
+ e.preventDefault();
+ let data={name:$("name").value,quantity:Number($("quantity").value),price:Number($("price").value)};
+ try{
+  let r=await fetch(editing?API+"/"+editing:API,{method:editing?"PUT":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});
+  let result=await r.json();if(!r.ok)throw Error(result.error||"Request failed");
+  $("productForm").reset();editing=null;$("formTitle").textContent="Add a product";$("saveButton").textContent="Add product";load();
+ }catch(err){$("message").textContent=err.message;}
+});
+load();
+</script>
+</body></html>
